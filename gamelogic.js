@@ -121,6 +121,78 @@ function scorePatternFromCell(boardState, row, col, dr, dc, player) {
     return 0;
 }
 
+function detectAdvancedPatterns(boardState, player) {
+    let total = 0;
+    const directions = [
+        [0, 1],   // ngang
+        [1, 0],   // dọc
+        [1, 1],   // chéo xuống phải
+        [1, -1]   // chéo xuống trái
+    ];
+
+    for (const [dr, dc] of directions) {
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const endR = r + dr * 4;
+                const endC = c + dc * 4;
+                if (!inBounds(endR, endC)) {
+                    continue;
+                }
+
+                let playerCount = 0;
+                let emptyCount = 0;
+                let hasOpponent = false;
+                const playerIndices = [];
+
+                for (let i = 0; i < 5; i++) {
+                    const cell = boardState[r + dr * i][c + dc * i];
+                    if (cell === player) {
+                        playerCount++;
+                        playerIndices.push(i);
+                    } else if (cell === EMPTY) {
+                        emptyCount++;
+                    } else {
+                        hasOpponent = true;
+                        break;
+                    }
+                }
+
+                if (hasOpponent) {
+                    continue;
+                }
+
+                if (playerCount > 0) {
+                    const spanLength = playerIndices[playerIndices.length - 1] - playerIndices[0] + 1;
+                    if (spanLength === playerCount) {
+                        continue;
+                    }
+                }
+
+                const beforeR = r - dr, beforeC = c - dc;
+                const beforeOpen = inBounds(beforeR, beforeC) && boardState[beforeR][beforeC] === EMPTY;
+                
+                const afterR = endR + dr, afterC = endC + dc;
+                const afterOpen = inBounds(afterR, afterC) && boardState[afterR][afterC] === EMPTY;
+
+                if (playerCount === 4 && emptyCount === 1) {
+                    if (beforeOpen || afterOpen) {
+                        total += 4000;
+                    } else {
+                        total += 2000;
+                    }
+                } else if (playerCount === 3 && emptyCount === 2) {
+                    if (beforeOpen && afterOpen) {
+                        total += 800;
+                    } else if (beforeOpen || afterOpen) {
+                        total += 150;
+                    }
+                }
+            }
+        }
+    }
+    return total;
+}
+
 function evaluateSinglePlayer(boardState, player) {
     let total = 0;
     const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
@@ -132,6 +204,7 @@ function evaluateSinglePlayer(boardState, player) {
             }
         }
     }
+    total += detectAdvancedPatterns(boardState, player);
     return total;
 }
 

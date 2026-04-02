@@ -393,7 +393,13 @@ function triggerAITurn() {
 function renderUI() {
     renderBoard();
     renderStatusPanels();
-    renderGameOver();
+    
+    // Nếu có người thắng / hòa, trì hoãn 1.5s trước khi hiện modal để khoe đường chiến thắng
+    if (gameStatus.winner || gameStatus.isDraw) {
+        setTimeout(renderGameOver, 1500);
+    } else {
+        renderGameOver();
+    }
 }
 
 function renderBoard() {
