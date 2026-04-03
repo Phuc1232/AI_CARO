@@ -15,10 +15,7 @@ let gameStatus = { winner: null, isDraw: false, winningCells: [], isTimeout: fal
 let lastMove = null;
 let isThinking = false;
 
-// Variables Timer
-let humanTime = 300; // 5 phút * 60 giây
-let aiTime = 300;
-let timerInterval = null;
+// Variables
 
 let humanMatchScore = 0;
 let aiMatchScore = 0;
@@ -28,15 +25,7 @@ let aiWorker = new Worker('gamelogic.js');
 aiWorker.onmessage = function(e) {
     const { result, elapsed } = e.data;
     
-    // Cập nhật thời gian AI đã suy nghĩ 
-    aiTime -= Math.floor(elapsed / 1000);
-    if (aiTime < 0) aiTime = 0;
-    elements.aiTimeDisplay.textContent = formatTime(aiTime);
-    
-    if (aiTime <= 0) {
-        handleTimeout(aiId);
-        return;
-    }
+    // AI đã hoàn tất suy nghĩ
     
     if (result.move) {
         handleMove(result.move[0], result.move[1], aiId);
@@ -201,68 +190,12 @@ const elements = {
     aiThinkingIndicator: document.getElementById('ai-thinking-indicator'),
     humanStoneIcon: document.getElementById('human-stone-icon'),
     aiStoneIcon: document.getElementById('ai-stone-icon'),
-    humanTimeDisplay: document.getElementById('human-time-display'),
-    aiTimeDisplay: document.getElementById('ai-time-display'),
     humanScoreDisplay: document.getElementById('human-score-display'),
     aiScoreDisplay: document.getElementById('ai-score-display'),
     btnNextRound: document.getElementById('btn-next-round')
 };
 
-// Utils: Hiển thị định dạng mm:ss
-function formatTime(seconds) {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-}
 
-function startTimer() {
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = setInterval(() => {
-        if (gameStatus.winner || gameStatus.isDraw) {
-            clearInterval(timerInterval);
-            return;
-        }
-
-        if (currentPlayer === humanId) {
-            humanTime--;
-            elements.humanTimeDisplay.textContent = formatTime(humanTime);
-            if (humanTime <= 0) handleTimeout(humanId);
-        } else if (currentPlayer === aiId) {
-            aiTime--;
-            elements.aiTimeDisplay.textContent = formatTime(aiTime);
-            if (aiTime <= 0) handleTimeout(aiId);
-        }
-    }, 1000);
-}
-
-function stopTimer() {
-    if (timerInterval) clearInterval(timerInterval);
-}
-
-function handleTimeout(playerIdTimeout) {
-    stopTimer();
-    
-    if (playerIdTimeout === aiId) {
-        playSound(winAudio);
-        humanMatchScore++;
-    } else {
-        playSound(loseAudio);
-        aiMatchScore++;
-    }
-    
-    elements.humanScoreDisplay.textContent = humanMatchScore;
-    elements.aiScoreDisplay.textContent = aiMatchScore;
-
-    gameStatus = {
-        winner: playerIdTimeout === 1 ? 2 : 1, // Kẻ kia thắng
-        isDraw: false,
-        winningCells: [],
-        isTimeout: true
-    };
-    currentPlayer = null;
-    isThinking = false;
-    renderUI();
-}
 
 let cellDOMs = [];
 
@@ -314,13 +247,7 @@ function initGame(isFullReset = true) {
     currentPlayer = PLAYER_X; // 1 luôn đi trước
     isThinking = false;
 
-    humanTime = 300;
-    aiTime = 300;
-    elements.humanTimeDisplay.textContent = "05:00";
-    elements.aiTimeDisplay.textContent = "05:00";
-
     renderUI();
-    startTimer();
 
     // Nếu aiId === 1 thì tời lượt AI ngay từ đầu
     if (currentPlayer === aiId) {
@@ -345,7 +272,6 @@ function handleMove(r, c, playerDoingMove) {
     gameStatus = checkWinner(board);
 
     if (gameStatus.winner !== null || gameStatus.isDraw) {
-        stopTimer();
         currentPlayer = null;
         isThinking = false;
         
@@ -376,11 +302,6 @@ function handleMove(r, c, playerDoingMove) {
 
 function triggerAITurn() {
     if (gameStatus.winner || gameStatus.isDraw) return;
-
-    if (aiTime < 120 && depth > 4) {
-        depth = 4;
-        elements.depthDisplay.textContent = depth;
-    }
 
     isThinking = true;
     renderStatusPanels(); // Cập nhật chữ "Đang tính..." lập tức
@@ -481,7 +402,7 @@ function renderGameOver() {
         elements.gameOverOverlay.classList.add('flex');
 
         elements.winnerDepthInfo.textContent = `Trận đấu kết thúc ở độ sâu (Depth): ${depth}`;
-        let reason = gameStatus.isTimeout ? " <br/><span class='text-2xl mt-4 block text-slate-300'>(Đối phương đã hết thời gian!)</span>" : "";
+        let reason = "";
 
         const isFinal = humanMatchScore >= 3 || aiMatchScore >= 3;
 
