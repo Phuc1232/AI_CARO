@@ -225,7 +225,7 @@ function evaluateBoard(boardState, aiPlayerId) {
     return (scoreAI - scoreOpp) + (bonusAI - bonusOpp);
 }
 
-function minimax(boardState, depthLimit, alpha, beta, isMaximizing, aiId, moveCount) {
+function minimax(boardState, depthLimit, alpha, beta, isMaximizing, aiId) {
     const status = checkWinner(boardState);
     if (status.winner !== null || status.isDraw || depthLimit === 0) {
         let score = evaluateBoard(boardState, aiId);
@@ -257,7 +257,7 @@ function minimax(boardState, depthLimit, alpha, beta, isMaximizing, aiId, moveCo
         let bestScore = -Infinity;
         for (const [r, c] of validMoves) {
             boardState[r][c] = currPlayer;
-            const result = minimax(boardState, depthLimit - 1, alpha, beta, false, aiId, moveCount + 1);
+            const result = minimax(boardState, depthLimit - 1, alpha, beta, false, aiId);
             boardState[r][c] = EMPTY;
 
             if (result.score > bestScore) {
@@ -268,11 +268,12 @@ function minimax(boardState, depthLimit, alpha, beta, isMaximizing, aiId, moveCo
             if (beta <= alpha) break; // Pruning
         }
         return { score: bestScore, move: bestMove };
-    } else {
+    } 
+    else {
         let bestScore = Infinity;
         for (const [r, c] of validMoves) {
             boardState[r][c] = currPlayer;
-            const result = minimax(boardState, depthLimit - 1, alpha, beta, true, aiId, moveCount + 1);
+            const result = minimax(boardState, depthLimit - 1, alpha, beta, true, aiId);
             boardState[r][c] = EMPTY;
 
             if (result.score < bestScore) {
@@ -286,13 +287,13 @@ function minimax(boardState, depthLimit, alpha, beta, isMaximizing, aiId, moveCo
     }
 }
 
-// Giao tiếp với Main Thread (Nhận sự kiện từ AICARO_FINAL.js)
+// Giao tiếp với Main Thread (Nhận sự kiện từ Render.js)
 self.onmessage = function(e) {
     const { boardCopy, depth, aiId } = e.data;
     const startTime = performance.now();
     
     // Đệ quy tính toán dài hơi (không làm kẹt UI chính)
-    const result = minimax(boardCopy, depth, -Infinity, Infinity, true, aiId, 0);
+    const result = minimax(boardCopy, depth, -Infinity, Infinity, true, aiId);
     
     const elapsed = performance.now() - startTime;
     self.postMessage({ result, elapsed });
